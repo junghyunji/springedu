@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xsi:schemaLocation="http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.1.xsd">
+
+	<!-- 데이터 소스 설정 & 공통 빈 & DB -->
+	<bean id="dataSource"
+		class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName"
+			value="oracle.jdbc.driver.OracleDriver"></property>
+		<property name="url"
+			value="jdbc:oracle:thin:@localhost:1521:xe"></property>
+		<property name="username" value="hr"></property>
+		<property name="password" value="hr"></property>
+	</bean>
+
+	<!-- mybatis할때 이거 필요없어요 ↓ -->
+	<bean id="jdbcTemplate"
+		class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+
+	<!-- <baen id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"> 
+		<property name="dataSource" ref="dataSource" /> </baen> 오타ㅡㅡ 이거 왜 안되냨ㅋㅋ 왜긴...bean이 
+		baen으로 되어잇잖니 -->
+
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<!-- <tx:annotation-driven transaction-manager="txManager"/> -->
+
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="*" /> <!-- get이 아닌 모든 메소드는 트랙잭션 처리가 들어감 -->
+		</tx:attributes>
+	</tx:advice>
+
+	<aop:config>
+		<aop:pointcut
+			expression="execution(* com.kosa.myapp..*Service.*(..))"
+			id="txPointcut" />
+		<aop:advisor advice-ref="txAdvice"
+			pointcut-ref="txPointcut" />
+	</aop:config>
+
+	<context:component-scan
+		base-package="com.kosa.myapp"></context:component-scan> <!-- 이거 왜 안썼냐고요 -->
+		
+		<!-- mybatis를 하면서 새롭게 추가된 친구들 ↓ -->
+	<mybatis-spring:scan base-package="com.kosa.myapp" /> <!-- DAO 인터페이스 찾기 -->
+	
+	<bean id="sqlSessionFactory"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="mapperLocations"
+			value="classpath:com/kosa/myapp/**/*.xml" /> <!-- SQL구문을 작성한 XML 파일의 위치를 지정 -->
+	</bean>
+	
+</beans>
